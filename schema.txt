@@ -1,0 +1,1 @@
+datetime_str:string,datetime:timestamp,event:string,server:string,rhost:string,hostname:string,client_port:string,user:string,message:string

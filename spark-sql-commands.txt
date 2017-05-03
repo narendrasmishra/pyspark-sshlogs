@@ -1,0 +1,29 @@
+# Create the table in Spark SQL
+
+
+CREATE TABLE sshlogs (date_timestr: string, datetime: integer, event: string, server: string, rhost: string, hostname: string , client_port: string, user: string, message: string)
+USING com.databricks.spark.csv
+OPTIONS (path "gs://wwoo-hadoop-asia/sshlogs/part-*", header "true", inferSchema "false")
+
+# Find users with the highest number of failed password logins in any 7 day period
+
+SELECT
+  failed_logins, user
+FROM
+  (SELECT
+     MAX(n) as failed_logins, user
+   FROM
+    (SELECT datetime, user, COUNT(*) OVER
+       (PARTITION BY user ORDER BY datetime
+          RANGE BETWEEN 7 * 60 * 60 * 24 PRECEDING AND CURRENT ROW) n
+     FROM
+       sshlogs
+     WHERE
+       event = "PASSWORD_FAIL")
+   GROUP BY
+     user)
+WHERE
+  failed_logins > 100
+ORDER BY
+  failed_logins
+DESC
