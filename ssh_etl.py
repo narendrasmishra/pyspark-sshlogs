@@ -11,7 +11,7 @@
 from pyspark import SparkContext
 import time
 import calendar
-
+import argparse
 
 ##
 # Parse rows that look like these examples:
@@ -83,9 +83,15 @@ def parse_reverse_mapping(line):
     hostname = line.split(" for ")[1].split()[0]
     return (epoch, [timestamp, epoch, event, ip, rhost, hostname, port, user, message])
 
+# Parse command line arguments
+parser = argparse.ArgumentParser()
+parser.add_argument("--infile", required=True, help="input file")
+parser.add_argument("--outfile", required=True, help="output file")
+args = parser.parse_args()
+
 # We don't need this if running in pyspark interpreter
 sc = SparkContext()
-authlog = sc.textFile("gs://wwoo-hadoop-asia/authlogs/auth.log.1")
+authlog = sc.textFile(args.infile)
 
 # Password logins
 password_success = authlog.filter(lambda x: "Accepted password" in x)
@@ -109,4 +115,4 @@ c6 = invalid_user.map(lambda x: parse_invalid_user(x))
 # Write out the CSV to GCS
 all = c1.union(c2).union(c3).union(c4).union(c5).union(c6)
 #all_sorted = all.sortByKey().saveAsTextFile("gs://wwoo-hadoop-asia/out.csv")
-all.map(lambda x: ''.join(['"', '","'.join(x[1]), '"'])).saveAsTextFile("gs://wwoo-hadoop-asia/out.csv")
+all.map(lambda x: ''.join(['"', '","'.join(x[1]), '"'])).saveAsTextFile(args.outfile)
